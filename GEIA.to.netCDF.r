@@ -475,8 +475,13 @@ ncatt_put(
   prec="text")
 
 # flush to file (there may not be data on disk before this point)
-# nc_close(netcdf.file)
-nc_sync(netcdf.file) # so we don't hafta reopen the file, below
+# nc_sync(netcdf.file) # so we don't hafta reopen the file, below
+# Nope: per David W. Pierce Mon, 27 Aug 2012 21:35:35 -0700, ncsync is not enough
+nc_close(netcdf.file)
+nc_open(netcdf.fn,
+        write=FALSE,    # will only read below
+        readunlim=TRUE) # it's a small file
+
 # <simple output check>
 system(sprintf('ls -alth %s', netcdf.fp))
 system(sprintf('ncdump -h %s', netcdf.fp))
@@ -495,23 +500,26 @@ med.str <- sprintf('med=%s', stat.str)
 min.str <- sprintf('min=%s', stat.str)
 # </copied from plotLayersForTimestep.r>
 
-# Get the data out of the datavar, to be sure
+# Get the data out of the datavar, to test reusability
 # target.data <- emis.var[,,1] # fails, with
 # > Error in emis.var[, , 1] : incorrect number of dimensions
-## target.data <- ncvar_get(
-##   nc=netcdf.file,
-## #  varid=emis.var,
-##   varid=emis.var.name,
-##   # read all the data
-##   start=rep(1, emis.var$ndims),
-## #  count=rep(-1, emis.var$ndims)) # fails with
-## # > Error in if (nc$var[[li]]$hasAddOffset) addOffset = nc$var[[li]]$addOffset else addOffset = 0 : 
-## # >   argument is of length zero
-##   count=c(-1, -1, 1))
-## dim(target.data)
+target.data <- ncvar_get(
+  nc=netcdf.file,
+#  varid=emis.var,
+  varid=emis.var.name,
+  # read all the data
+#  start=rep(1, emis.var$ndims),
+  start=c(1, 1, 1),
+#  count=rep(-1, emis.var$ndims)) 
+  count=c(-1, -1, 1))
+# MAJOR: all of the above fail with
+# > Error in if (nc$var[[li]]$hasAddOffset) addOffset = nc$var[[li]]$addOffset else addOffset = 0 : 
+# >   argument is of length zero
 
 # Note that, if just using the raw data, the following plot code works.
 target.data <- t(global.emis.mx)
+# <simple output check/>
+dim(target.data) # n.lon, n.lat
 
 # <copied from windowEmissions.r>
 palette.vec <- c("grey","purple","deepskyblue2","green","yellow","orange","red","brown")
