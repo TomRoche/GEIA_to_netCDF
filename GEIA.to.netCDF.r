@@ -280,18 +280,6 @@ lat.vec <- 0.5 +
 # Create emissions matrix corresponding to those dimensional vectors
 # (i.e., global.emis.mx is the "projection" of global.emis.vec)
 # First, create empty global.emis.mx? No, fill from global.emis.vec.
-# Fill using byrow=T? or "bycol" == byrow=FALSE? (row=lat)
-# I assigned (using lon.lat.vec.to.grid.index)
-# "grid indices" (global.emis.vec.index values) 
-# "lon-majorly" (i.e., iterate over lats before incrementing lon),
-# so we want to fill byrow=FALSE ... BUT,
-# that will "fill from top" (i.e., starting @ 90N) and
-# we want to "fill from bottom" (i.e., starting @ 90S) ...
-# global.emis.mx <- matrix(
-#   global.emis.vec, nrow=GEIA.emis.lat.dim, ncol=GEIA.emis.lon.dim,
-# # so flip/reverse rows/latitudes when done
-#   byrow=FALSE)[GEIA.emis.lat.dim:1,] 
-
 # NO: I cannot just fill global.emis.mx from global.emis.vec:
 # latter's/GEIA's grid numbering system ensures 1000 lons per lat!
 # Which overflows the "real-spatial" global.emis.mx :-(
@@ -349,7 +337,7 @@ map(add=TRUE)
 # write output to netCDF
 library(ncdf4)
 
-# output file path (not currently used by package=ncdf4)
+# output file path
 netcdf.fp <- sprintf('%s/%s', netcdf.dir, netcdf.fn)
 
 # create dimensions and dimensional variables
@@ -478,9 +466,21 @@ ncatt_put(
 # nc_sync(netcdf.file) # so we don't hafta reopen the file, below
 # Nope: per David W. Pierce Mon, 27 Aug 2012 21:35:35 -0700, ncsync is not enough
 nc_close(netcdf.file)
-nc_open(netcdf.fn,
-        write=FALSE,    # will only read below
-        readunlim=TRUE) # it's a small file
+
+# NOTE: you must assign when you nc_open! (though not when you nc_close)
+# If you do
+## nc_open(netcdf.fp,
+##         write=FALSE,    # will only read below
+##         readunlim=TRUE) # it's a small file
+# you will get this error on your first attempt to ncvar_get
+# (though no error on ncvar_put, annoyingly enough):
+# > Error in if (nc$var[[li]]$hasAddOffset) addOffset = nc$var[[li]]$addOffset else addOffset = 0 :
+# > argument is of length zero
+# MERCI BEAUCOUP, Pascal Oettli!
+netcdf.file <- nc_open(
+  filename=netcdf.fp,
+  write=FALSE,    # will only read below
+  readunlim=TRUE) # it's a small file
 
 # <simple output check>
 system(sprintf('ls -alth %s', netcdf.fp))
@@ -501,23 +501,13 @@ min.str <- sprintf('min=%s', stat.str)
 # </copied from plotLayersForTimestep.r>
 
 # Get the data out of the datavar, to test reusability
-# target.data <- emis.var[,,1] # fails, with
-# > Error in emis.var[, , 1] : incorrect number of dimensions
 target.data <- ncvar_get(
   nc=netcdf.file,
-#  varid=emis.var,
-  varid=emis.var.name,
+  varid=emis.var,
   # read all the data
-#  start=rep(1, emis.var$ndims),
-  start=c(1, 1, 1),
-#  count=rep(-1, emis.var$ndims)) 
-  count=c(-1, -1, 1))
-# MAJOR: all of the above fail with
-# > Error in if (nc$var[[li]]$hasAddOffset) addOffset = nc$var[[li]]$addOffset else addOffset = 0 : 
-# >   argument is of length zero
+  start=rep(1, emis.var$ndims),
+  count=rep(-1, emis.var$ndims)) 
 
-# Note that, if just using the raw data, the following plot code works.
-target.data <- t(global.emis.mx)
 # <simple output check/>
 dim(target.data) # n.lon, n.lat
 
