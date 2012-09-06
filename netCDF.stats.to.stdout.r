@@ -7,8 +7,24 @@
 this.fn <- 'netCDF.stats.to.stdout.r'      # TODO: get like $0
 
 # input metadata: pass via `Rscript args` if not using these defaults
-netcdf.fp <- './GEIA_N2O_oceanic.nc' # can be relative or FQ
-var.name <- 'emi_n2o'
+netcdf.fp <- '/path/to/netcdf.nc' # can be relative or FQ
+var.name <- 'name_of_data_variable'
+
+# Note order of arguments: must pass netcdf.fp, then var.name
+# TODO: discover how to pass named arguments via Rscript
+args <- commandArgs(TRUE)
+# args is now a list of character vectors
+# First check to see if any arguments were passed,
+# then evaluate each argument.
+if (length(args)==0) {
+  cat("No arguments supplied\n")
+  q(status=1) # exit
+  # defaults supplied above
+} else {
+  # TODO: test args
+  netcdf.fp <- args[1]
+  var.name <- args[2]
+}
 
 # double-sprintf-ing to set precision by constant: cool or brittle?
 stats.precision <- 3 # sigdigs to use for min, median, max of obs
