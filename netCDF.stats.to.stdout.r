@@ -1,6 +1,13 @@
 # R code to write simple stats for an input file
-# (here, hardcoded :-( to stdout.
 # There's gotta be an easier way.
+# Note named arguments only work from Rscript with awkward quoting:
+# e.g., of the following (bash) commandlines
+
+# - Rscript ./netCDF.stats.to.stdout.r netcdf.fp="./GEIA_N2O_oceanic.nc" var.name="emi_n2o"
+#   fails
+
+# + Rscript ./netCDF.stats.to.stdout.r 'netcdf.fp="./GEIA_N2O_oceanic.nc"' 'var.name="emi_n2o"'
+#   succeeds
 
 # constants-----------------------------------------------------------
 
@@ -22,8 +29,12 @@ if (length(args)==0) {
   # defaults supplied above
 } else {
   # TODO: test args
-  netcdf.fp <- args[1]
-  var.name <- args[2]
+# simple positional args work
+#  netcdf.fp <- args[1]
+#  var.name <- args[2]
+  for (i in 1:length(args)) {
+    eval(parse(text=args[[i]]))
+  }
 }
 
 # double-sprintf-ing to set precision by constant: cool or brittle?
