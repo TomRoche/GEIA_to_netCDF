@@ -1,4 +1,6 @@
-# R code to write simple stats for an input file
+# R code to write simple stats (min, mean, median, max) for an input file.
+# Run this like
+# > $ Rscript ./netCDF.stats.to.stdout.r netcdf.fp=./GEIA_N2O_oceanic.nc var.name=emi_n2o
 # There's gotta be an easier way.
 
 # constants-----------------------------------------------------------
