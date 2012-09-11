@@ -3,6 +3,12 @@
 # > $ Rscript ./netCDF.stats.to.stdout.r netcdf.fp=./GEIA_N2O_oceanic.nc var.name=emi_n2o
 # There's gotta be an easier way.
 
+# functions-----------------------------------------------------------
+
+# syntactic sugar
+q1 <- function(vec) { quantile(vec, 0.25) } # first quartile
+q3 <- function(vec) { quantile(vec, 0.75) } # third quartile
+
 # constants-----------------------------------------------------------
 
 # TODO: fix `strsplit` regexp below to make this unnecessary
@@ -71,8 +77,10 @@ stat.str <- sprintf('%%.%ig', stats.precision)
 # use these in function=subtitle.stats as sprintf inputs
 max.str <- sprintf('max=%s', stat.str)
 mea.str <- sprintf('mean=%s', stat.str)
-med.str <- sprintf('med=%s', stat.str)
+med.str <- sprintf('med=%s', stat.str)  # median
 min.str <- sprintf('min=%s', stat.str)
+q1.str <- sprintf('q1=%s', stat.str)    # first quartile
+q3.str <- sprintf('q3=%s', stat.str)    # third quartile
 
 # code----------------------------------------------------------------
 
@@ -106,17 +114,22 @@ if (is.numeric(var.data) && sum(!is.na(var.data))) {
     cells.str <- sprintf('cells=%i', length(var.data))
     obs.str <- sprintf('obs=%i', obs)
     min.str <- sprintf(min.str, min(unsparse.data))
-    max.str <- sprintf(max.str, max(unsparse.data))
+    q1.str <- sprintf(q1.str, q1(unsparse.data))
     mea.str <- sprintf(mea.str, mean(unsparse.data))
     med.str <- sprintf(med.str, median(unsparse.data))
+    q3.str <- sprintf(q3.str, q3(unsparse.data))
+    max.str <- sprintf(max.str, max(unsparse.data))
 
     cat(sprintf('For %s var=%s\n', netcdf.fp, var.name))
     cat(sprintf('\t%s\n', cells.str))
     cat(sprintf('\t%s\n', obs.str))
+    # 6-number summary
     cat(sprintf('\t%s\n', min.str))
-    cat(sprintf('\t%s\n', max.str))
-    cat(sprintf('\t%s\n', mea.str))
+    cat(sprintf('\t%s\n', q1.str))
     cat(sprintf('\t%s\n', med.str))
+    cat(sprintf('\t%s\n', mea.str))
+    cat(sprintf('\t%s\n', q3.str))
+    cat(sprintf('\t%s\n', max.str))
 
   } else {
     cat(sprintf('%s var=%s has no non-NA data',
