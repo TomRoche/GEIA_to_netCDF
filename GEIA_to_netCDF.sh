@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Driver for GEIA.to.netCDF.r on one cluster--fiddle for your platform.
+# Driver for GEIA.to.netCDF.r--configure as needed for your platform.
 # NOTE regarding R and source-ing below!
 
-# for netcdf4 on EMVL:
-# I may need to run from CLI, not here
-# You may not need this at all!
+# for netcdf4 (ncdf4.so, libnetcdf.so.7) on EMVL:
+# I may need to run this from CLI, not here, and
+# you may not need this at all!
 module add netcdf-4.1.2
 # for R on EMVL: don't ask :-(
 R_DIR='/usr/local/R-2.15.0/bin'
@@ -12,14 +12,18 @@ R="${R_DIR}/R"
 RSCRIPT="${R_DIR}/Rscript"
 
 export TEST_DIR='.' # keep it simple for now: same dir as top of git repo
-TEST_RUNNER_R="${TEST_DIR}/GEIA.to.netCDF.r"
+mkdir -p ${TEST_DIR}
 
 # for plotting
 PDF_VIEWER='xpdf'  # whatever works on your platform
+# temporally disaggregate multiple plots
 DATE_FORMAT='%Y%m%d_%H%M'
 export PDF_DIR="${TEST_DIR}"
 PDF_FN="test_$(date +${DATE_FORMAT}).pdf"
-export PDF_FP="${TEST_DIR}/${PDF_FN}"
+export PDF_FP="${TEST_DIR}/${PDF_FN}" # path to PDF output
+
+# this does the converting and plotting
+CONVERT_PLOT_R="${TEST_DIR}/GEIA.to.netCDF.r" 
 
 # get GEIA input text from my repository (stable location, no unzip)
 GEIA_INPUT_URI='https://github.com/downloads/TomRoche/GEIA_to_netCDF/N2OOC90Y.1A'
@@ -34,17 +38,14 @@ if [[ ! -r "${GEIA_INPUT_FP}" ]] ; then
   done
 fi
 
-# this fails (see  ) # TODO: fixme!
-"${RSCRIPT}" "${TEST_RUNNER_R}"
-# so just start R and source
+# If this fails ...
+"${RSCRIPT}" "${CONVERT_PLOT_R}"
+# ... just start R ...
 # "${R}"
+# ... and source ${CONVERT_PLOT_R}, e.g.,
 # source('./GEIA.to.netCDF.r')
-# Note this currently gets error like
-# > Error in as.double(y) : 
-# >   cannot coerce type 'closure' to vector of type 'double'
-# but runs successfully, but cannot exit successfully :-( # TODO: fixme!
 
-# exit from R and
+# After exiting R, show output files and display output PDF.
 for CMD in \
   "ls -alht ${TEST_DIR}" \
   "${PDF_VIEWER} ${PDF_FP}" \

@@ -7,14 +7,15 @@ Uses [R][] code to convert [GEIA][] geospatial data from its quirky [native form
 [ncdf4]: http://cran.r-project.org/web/packages/ncdf4/
 [fields]: http://cran.r-project.org/web/packages/fields/
 
-To run the example (yes, it's crude right now!):
+To run the examples:
 
 1. Clone this repo.
 2. `cd` to its working directory.
-3. Open the driver (bash) script `GEIA_to_netCDF.sh`! You will probably need to edit it to make it work on your platform. Notably you will probably want to point it to your R and PDF viewer.
-4. Run the driver:
 
-    $ ./GEIA_to_netCDF.sh
+To run the first example:
 
-5. This will download input, then run an R script to convert the input to a netCDF file, and plot that file.
-6. After the R script exits, the driver should display the PDF (if properly configured in step=3). The most recent version of the PDF is also available for [download](https://github.com/downloads/TomRoche/GEIA_to_netCDF/GEIA_N2O_oceanic.pdf).
+1. Open the driver (bash) script `GEIA_to_netCDF.sh`! You will probably need to edit it to make it work on your platform. Notably you will probably want to point it to your R and PDF viewer.
+2. Run the driver:
+    `$ ./GEIA_to_netCDF.sh`
+3. This will download input, then run an R script to convert the input to a netCDF file, and plot that file.
+4. After the R script exits, the driver should display the PDF (if properly configured in step=3). The most recent version of the PDF is also available for [download](https://github.com/downloads/TomRoche/GEIA_to_netCDF/GEIA_N2O_oceanic.pdf).
