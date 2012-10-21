@@ -176,7 +176,7 @@ create.global.emissions.vector <- function(
 # TODO: refactor! this plot.layer is copy/mod from ioapi::plotLayersForTimestep.r::plot.layer
 # changes to arguments:
 # * attrs.list -> x.centers, y.centers (since these are in degrees, not km)
-# * map not passed: I'm using global map via `map(add=TRUE)`
+# * map not passed: I'm using global map via `map(add=TRUE)` TODO: fixme
 plot.layer <- function(
   data,             # data to plot (required)
   title,            # string for plot title (required?)
@@ -204,7 +204,7 @@ plot.layer <- function(
         axis.args=list(at=quantiles, labels=quantiles.formatted),
         main=title, sub=subtitle)
     }
-    lines(map)
+    map(add=TRUE)
   } else {
 # debugging
 #      print(paste('Null image.plot for source layer=', i.layer))
@@ -217,7 +217,7 @@ plot.layer <- function(
         xlim=range(x.centers), ylim=range(y.centers),
         main=title, sub=subtitle)
     }
-    lines(map)
+    map(add=TRUE)
   } # end testing data
 } # end function plot.layer
 
