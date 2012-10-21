@@ -121,7 +121,9 @@ if (!interactive()) {
   # assign val (RHS) to key (LHS) for arguments of the (required) form 'key=val'
   if (length(args)==0) {
     cat(sprintf('%s: no arguments supplied, exiting\n', this.fn))
-    q(status=1) # exit
+#    q(status=1) # KLUDGE:
+# Currently this is not seeing arguments when called from Rscript,
+# so this exit also exits the caller :-(    
   } else {
   # simple positional args work
   # TODO: also support positional usage

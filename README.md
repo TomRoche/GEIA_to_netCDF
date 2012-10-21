@@ -10,9 +10,11 @@ Uses [R][] code to convert [GEIA][] geospatial data from its quirky [native form
 To run the example (yes, it's crude right now!):
 
 1. Clone this repo.
-2. Download [the sample data][GEIA sample N2O data] to the folder containing your clone.
-3. Start an R console in that folder.
-4. Run the [R example][sample R code].
+2. `cd` to its working directory.
+3. Open the driver (bash) script `GEIA_to_netCDF.sh`! You will probably need to edit it to make it work on your platform. Notably you will probably want to point it to your R and PDF viewer.
+4. Run the driver:
 
-[GEIA sample N2O data]: /downloads/TomRoche/GEIA_to_netCDF/N2OOC90Y.1A
-[sample R code]: /TomRoche/GEIA_to_netCDF/blob/master/GEIA.to.netCDF.r
+    $ ./GEIA_to_netCDF.sh
+
+5. This will download input, then run an R script to convert the input to a netCDF file, and plot that file.
+6. After the R script exits, the driver should display the PDF (if properly configured in step=3). The most recent version of the PDF is also available for [download](https://github.com/downloads/TomRoche/GEIA_to_netCDF/GEIA_N2O_oceanic.pdf).

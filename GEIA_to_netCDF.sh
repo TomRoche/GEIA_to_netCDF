@@ -6,6 +6,10 @@
 # I may need to run from CLI, not here
 # You may not need this at all!
 module add netcdf-4.1.2
+# for R on EMVL: don't ask :-(
+R_DIR='/usr/local/R-2.15.0/bin'
+R="${R_DIR}/R"
+RSCRIPT="${R_DIR}/Rscript"
 
 export TEST_DIR='.' # keep it simple for now: same dir as top of git repo
 TEST_RUNNER_R="${TEST_DIR}/GEIA.to.netCDF.r"
@@ -30,10 +34,10 @@ if [[ ! -r "${GEIA_INPUT_FP}" ]] ; then
   done
 fi
 
-# this fails
-# Rscript "${TEST_RUNNER_R}" # TODO: fixme!
+# this fails (see  ) # TODO: fixme!
+"${RSCRIPT}" "${TEST_RUNNER_R}"
 # so just start R and source
-R
+# "${R}"
 # source('./GEIA.to.netCDF.r')
 # Note this currently gets error like
 # > Error in as.double(y) : 
