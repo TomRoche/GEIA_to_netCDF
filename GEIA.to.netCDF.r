@@ -11,18 +11,22 @@ library(fields) # on tlrPanP5 as well as clusters
 
 this.fn <- 'GEIA.to.netCDF.r'      # TODO: get like $0
 
+test.dir <- Sys.getenv('TEST_DIR') # set in driver script; MUST exist
+pdf.dir <- Sys.getenv('PDF_DIR')   # set in driver script; MUST exist
+pdf.fp <- Sys.getenv('PDF_FP')     # set in driver script
+
 # input metadata
 # for details, see http://geiacenter.org/presentData/geiadfrm.html
-GEIA.emis.txt.dir <- '.'           # folder containing ...
+GEIA.emis.txt.dir <- test.dir      # folder containing ...
 GEIA.emis.txt.fn <- 'N2OOC90Y.1A'  # ... text file from GEIA ...
 # GEIA.emis.txt.fn <- 'N2OOC90Y.1A.short'  # ... text file from GEIA ...
 # GEIA.emis.txt.fn <- 'N2OOC90Y.1A.sorted'  # ... text file from GEIA ...
 GEIA.emis.txt.n.header <- 10       # ... with n.header lines to skip @ top
 
 # GEIA data is 1° x 1° so
-grid.lat.degree.start <- -90.0   # 90 S, scalar
+grid.lat.degree.start <- -90.0     # 90 S, scalar
 grid.lat.degree.per.cell <- 1.0
-grid.lon.degree.start <- -180.0  # 180 W, scalar
+grid.lon.degree.start <- -180.0    # 180 W, scalar
 grid.lon.degree.per.cell <- 1.0
 GEIA.emis.lat.dim <- 180.0 / grid.lat.degree.per.cell # total lats, scalar
 GEIA.emis.lon.dim <- 360.0 / grid.lon.degree.per.cell # total lons, scalar
@@ -30,8 +34,8 @@ GEIA.emis.grids.dim <-
   GEIA.emis.lat.dim * GEIA.emis.lon.dim # total gridcells, scalar
 
 # output metadata
-netcdf.dir <- '.'                      # folder containing ...
-netcdf.fn <- 'GEIA_N2O_oceanic.nc'     # ... netCDF emissions
+netcdf.dir <- test.dir             # folder containing ...
+netcdf.fn <- 'GEIA_N2O_oceanic.nc' # ... netCDF emissions
 netcdf.title <- 'GEIA annual oceanic N2O emissions'
 netcdf.source_file <-
   "http://geiacenter.org/data/n2ooc90y.1a.zip, 'GEIA Inventory n2ocg90yr1.1a  18 Dec 95'"
@@ -55,6 +59,9 @@ emis.var.total_emi_n2o <-              # EDGAR-style,
   3.5959E+06                           # value from header(GEIA.emis.txt.fn)
 emis.var.units <- "ton N2O-N/yr"       # value from header(GEIA.emis.txt.fn)
 emis.var._FillValue <- -999.0          # like GFED
+
+# utilities
+netCDF.stats.fp <- sprintf('%s/netCDF.stats.to.stdout.r', test.dir)
 
 # functions-----------------------------------------------------------
 
@@ -326,12 +333,16 @@ for (i.lon in 1:GEIA.emis.lon.dim) {
   } # end for loop over lats
 } # end for loop over lons
 
-# Now draw the damn thing
-# 1: TODO: FIXME: why do I need to transpose global.emis.mx?
-image(lon.vec, lat.vec, t(global.emis.mx))
-# 2,3,4: how it should work ?!?
-# image(lon.vec, lat.vec, global.emis.mx)
-map(add=TRUE)
+
+# start debugging
+# pdf(file=pdf.fp, width=5.5, height=4.25)
+# # 1: TODO: FIXME: why do I need to transpose global.emis.mx?
+# image(lon.vec, lat.vec, t(global.emis.mx))
+# # 2,3,4: how it should work ?!?
+# # image(lon.vec, lat.vec, global.emis.mx)
+# map(add=TRUE)
+# # dev.off() # leave on for subsequent plot; this will be p1/2
+#   end debugging
 # </visual input check>
 
 # write output to netCDF
@@ -485,6 +496,12 @@ netcdf.file <- nc_open(
 # <simple output check>
 system(sprintf('ls -alth %s', netcdf.fp))
 system(sprintf('ncdump -h %s', netcdf.fp))
+# TODO: call sample stats from netCDF.stats.to.stdout.r via function, not like this!
+# system('Rscript ./netCDF.stats.to.stdout.r netcdf.fp=./GEIA_N2O_oceanic.nc var.name=emi_n2o')
+source(netCDF.stats.fp)
+netCDF.stats.to.stdout(
+  netcdf.fp='./GEIA_N2O_oceanic.nc',
+  var.name='emi_n2o')
 # </simple output check>
 
 # <visual output check>
@@ -511,12 +528,28 @@ target.data <- ncvar_get(
 # <simple output check/>
 dim(target.data) # n.lon, n.lat
 
-# <copied from windowEmissions.r>
-palette.vec <- c("grey","purple","deepskyblue2","green","yellow","orange","red","brown")
+# <copy/mod from windowEmissions.r>
+palette.vec <- c(
+# original from KMF, 3 colors added to get deciles in probabilities.vec
+  #              R color
+  #                code
+  "grey",         # 260
+  "purple",       # 547
+  "deepskyblue2", # 123  
+  "green",        # 254
+  "greenyellow",  # 259
+  "yellow",       # 652
+  "orange",       # 498
+  "orangered",    # 503
+  "red",          # 552
+  "red4",         # 556
+  "brown"         #  32
+)
 colors <- colorRampPalette(palette.vec)
 probabilities.vec <- seq(0, 1, 1.0/(length(palette.vec) - 1))
-# </copied from windowEmissions.r>
+# </copy/mod from windowEmissions.r>
 
+pdf(file=pdf.fp, width=5.5, height=4.25)
 # <copy/mod from plotLayersForTimestep.r>
 plot.layer(target.data,
   title=netcdf.title,
@@ -532,3 +565,4 @@ map(add=TRUE)
 # teardown
 dev.off()
 nc_close(netcdf.file)
+quit(save="no") # just exit
