@@ -1,6 +1,7 @@
 # R code to write GEIA emissions from the distributed text format
 # (space separated values, 10-line header, no comments)
 # to netCDF format. Unfortunately all hardcoded.
+# If running manually in R console, remember to run setup actions from GEIA_to_netCDF/regrid_GEIA_netCDF.sh
 
 # libraries also read separately below, for input and output processing
 library(ncdf4)
@@ -201,18 +202,35 @@ netCDF.stats.to.stdout(netcdf.fp=out.fp, var.name=data.var.name)
 # repeat for each plot file
 pdf(file=pdf.fp, width=5.5, height=4.25)
 
-# plot page 1: just plot
+# plot page 1: just plot----------------------------------------------
 # plot(out.raster, data.var.name) # only if RasterBrick or RasterStack
 plot(out.raster)
-# add a CONUS map
+# add a projected CONUS map
 plot(map.us.proj, add=TRUE)
 
-# plot page 2: try setting plot extents
+# plot page 2: try setting plot extents-------------------------------
 plot(out.raster, ext=template.raster)
-# add a CONUS map
+# add a projected CONUS map
 plot(map.us.proj, add=TRUE)
 
-# plot page 3: try image.plot-----------------------------------------
+# plot page 3: try raster::crop---------------------------------------
+template.raster.extent <- extent(template.raster)
+out.raster.crop <-
+  # overwrite the uncropped file
+  crop(out.raster, template.raster.extent, filename=out.fp, overwrite=TRUE)
+
+# start debugging
+out.raster.crop
+# same as out.raster (?)
+netCDF.stats.to.stdout(netcdf.fp=out.fp, var.name=data.var.name)
+# same as out.raster
+#   end debugging
+
+plot(out.raster.crop)
+# add a projected CONUS map
+plot(map.us.proj, add=TRUE)
+
+# plot page 4: try image.plot-----------------------------------------
 
 # plot.raster(
 #   raster=out.raster,
@@ -251,6 +269,7 @@ image.plot(plot.list, xlab="", ylab="", axes=F, col=colors(100),
 # map(add=TRUE) # not defined here
 lines(map.cmaq)
 
-dev.off()
+# plot page 4: end image.plot-----------------------------------------
 
-# plot page 3: end image.plot-----------------------------------------
+# flush to the plot device
+dev.off()

@@ -95,15 +95,12 @@ STAT_SCRIPT_URI='https://github.com/TomRoche/GEIA_to_netCDF/raw/master/netCDF.st
 STAT_SCRIPT_FN="$(basename ${STAT_SCRIPT_URI})"
 export STAT_SCRIPT_FP="${TEST_DIR}/${STAT_SCRIPT_FN}"
 
-# TODO: commit me! this script drives image.plot, but currently
-# only lives @ tlrp:code/R/ioapi-hack-R/plotLayersForTimestep.r
+# this script drives image.plot, and is copied from ioapi-hack-R (also on github)
+# TODO: R-package my code
 
 PLOT_SCRIPT_URI='https://github.com/TomRoche/GEIA_to_netCDF/raw/master/plotLayersForTimestep.r'
 PLOT_SCRIPT_FN="$(basename ${PLOT_SCRIPT_URI})"
 export PLOT_SCRIPT_FP="${TEST_DIR}/${PLOT_SCRIPT_FN}"
-# # wget --no-check-certificate -c -O ${PLOT_SCRIPT_FP} ${PLOT_SCRIPT_URI}
-# # temporarily
-# cp ~/${PLOT_SCRIPT_FN} ${TEST_DIR}/
 
 # payload-------------------------------------------------------------
 
@@ -117,10 +114,10 @@ export PLOT_SCRIPT_FP="${TEST_DIR}/${PLOT_SCRIPT_FN}"
 # start exit code copied from GEIA_to_netCDF.sh-----------------------
 # TODO: refactor
 
-# After exiting R, show output files and display output PDF.
+# After exiting R, show cwd and display output PDF.
 for CMD in \
   "ls -alht ${TEST_DIR}" \
-  "${PDF_VIEWER} ${PDF_FP}" \
+  "${PDF_VIEWER} ${PDF_FP} &" \
 ; do
   echo -e "$ ${CMD}"
   eval "${CMD}"
