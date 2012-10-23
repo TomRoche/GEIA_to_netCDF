@@ -34,8 +34,16 @@ out.crs <- '+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_
 out.fp <- Sys.getenv('DATA_OUTPUT_FP')
 
 # package=raster map, for raster::plot
-map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 == 'USA', ]  # unprojected
+# map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 == 'USA', ]  # unprojected
+# map.us.proj <- spTransform(map.us.unproj, CRS(out.crs))  # projected
+# use world map for now? fails
+# map.us.unproj <- wrld_simpl                              # unprojected
+map.us.unproj <-
+#  wrld_simpl[wrld_simpl$ISO3 == 'CAN', wrld_simpl$ISO3 == 'MEX', wrld_simpl$ISO3 == 'USA', ]
+#  wrld_simpl[wrld_simpl$ISO3 == 'CAN,MEX,USA', ]
+  wrld_simpl[wrld_simpl$ISO3 %in% c('CAN', 'MEX', 'USA'),]
 map.us.proj <- spTransform(map.us.unproj, CRS(out.crs))  # projected
+
 # package=M3 map for fields::image.plot
 map.table.fp <- Sys.getenv('MAP_TABLE_FP')
 map.cmaq <- read.table(map.table.fp, sep=",")
