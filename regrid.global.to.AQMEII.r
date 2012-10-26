@@ -33,47 +33,12 @@ template.band <- Sys.getenv('TEMPLATE_INPUT_BAND')
 out.crs <- '+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_0=-1728000'
 out.fp <- Sys.getenv('DATA_OUTPUT_FP')
 
-# package=raster map, for raster::plot
-# map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 == 'USA', ]  # unprojected
-# map.us.proj <- spTransform(map.us.unproj, CRS(out.crs))  # projected
-# use world map for now? fails
-# map.us.unproj <- wrld_simpl                              # unprojected
-map.us.unproj <-
-#  wrld_simpl[wrld_simpl$ISO3 == 'CAN', wrld_simpl$ISO3 == 'MEX', wrld_simpl$ISO3 == 'USA', ]
-#  wrld_simpl[wrld_simpl$ISO3 == 'CAN,MEX,USA', ]
-  wrld_simpl[wrld_simpl$ISO3 %in% c('CAN', 'MEX', 'USA'),]
-map.us.proj <- spTransform(map.us.unproj, CRS(out.crs))  # projected
-
-# package=M3 map for fields::image.plot
-map.table.fp <- Sys.getenv('MAP_TABLE_FP')
-map.cmaq <- read.table(map.table.fp, sep=",")
-
-palette.vec <- c(
-# original from KMF, 3 colors added to get deciles in probabilities.vec
-  #              R color
-  #                code
-  "grey",         # 260
-  "purple",       # 547
-  "deepskyblue2", # 123  
-  "green",        # 254
-  "greenyellow",  # 259
-  "yellow",       # 652
-  "orange",       # 498
-  "orangered",    # 503
-  "red",          # 552
-  "red4",         # 556
-  "brown"         #  32
-)
-colors <- colorRampPalette(palette.vec)
-# used for quantiling legend
-probabilities.vec <- seq(0, 1, 1.0/(length(palette.vec) - 1))
-# probabilities.vec
-# [1] 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
-
 stat.script.fp <- Sys.getenv('STAT_SCRIPT_FP')
 source(stat.script.fp)
 plot.script.fp <- Sys.getenv('PLOT_SCRIPT_FP')
 source(plot.script.fp)
+
+# plot constants below
 
 # payload-------------------------------------------------------------
 
@@ -141,10 +106,9 @@ system(sprintf('ncdump -h %s | head -n 13', template.in.fp))
 
 template.in.raster <- raster(template.in.fp, varname=data.var.name, band=template.band)
 template.raster <- projectExtent(template.in.raster, crs=out.crs)
-# Warning message:
-# In projectExtent(template.in.raster, out.crs) :
-#   158 projected point(s) not finite
-
+#> Warning message:
+#> In projectExtent(template.in.raster, out.crs) :
+#>   158 projected point(s) not finite
 # is that "projected point(s) not finite" warning important? Probably not, per Hijmans
 
 template.raster
@@ -159,7 +123,6 @@ template.raster
 
 out.raster <-
   projectRaster(
-#    from=in.raster, to=template.raster, method='bilinear', # why no CRS?
     from=in.raster, to=template.raster, method='bilinear', crs=out.crs,
     overwrite=TRUE, progress='window', format='CDF',
     # args from writeRaster
@@ -170,17 +133,28 @@ out.raster <-
     xname='COL',
     yname='ROW',
     filename=out.fp)
-out.raster
-# made with CRS
+# out.raster
 #> class       : RasterLayer 
 #> dimensions  : 299, 459, 137241  (nrow, ncol, ncell)
 #> resolution  : 53369.55, 56883.69  (x, y)
 #> extent      : -14802449, 9694173, -6258782, 10749443  (xmin, xmax, ymin, ymax)
 # ??? why still proj=longlat ???
 #> coord. ref. : +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 
-#> data source : /home/rtd/code/R/GEIA_to_netCDF/GEIA_N2O_oceanic_regrid.nc
+#> data source : /tmp/projectRasterTest/GEIA_N2O_oceanic_regrid.nc
 #> names       : N2O.emissions 
 #> zvar        : emi_n2o 
+
+# try working around the CRS problem above
+out.raster@crs <- CRS(out.crs)
+out.raster
+# class       : RasterLayer 
+# dimensions  : 299, 459, 137241  (nrow, ncol, ncell)
+# resolution  : 53369.55, 56883.69  (x, y)
+# extent      : -14802449, 9694173, -6258782, 10749443  (xmin, xmax, ymin, ymax)
+# coord. ref. : +proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_0=-1728000 +ellps=WGS84 
+# data source : /home/rtd/code/R/GEIA_to_netCDF/GEIA_N2O_oceanic_regrid.nc 
+# names       : N2O.emissions 
+# zvar        : emi_n2o 
 
 system(sprintf('ls -alht %s', test.dir))
 system(sprintf('ncdump -h %s', out.fp))
@@ -217,6 +191,20 @@ netCDF.stats.to.stdout(netcdf.fp=out.fp, var.name=data.var.name)
 #   max=784
 
 # plot to PDF---------------------------------------------------------
+
+# plot constants for raster::plot
+
+# package=raster map, for raster::plot
+# map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 == 'USA', ]  # unprojected
+# map.us.proj <- spTransform(map.us.unproj, CRS(out.crs))  # projected
+# do North America instead
+map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 %in% c('CAN', 'MEX', 'USA'),]
+map.us.proj <-
+  spTransform(map.us.unproj, CRS(out.crs)) # projected
+  # following args adapted from Hijmans, https://stat.ethz.ch/pipermail/r-sig-geo/2012-October/016501.html
+  # but the map does not draw in the output!
+#  spTransform(map.us.unproj, CRS=projection(out.raster, asText=F)) # projected
+
 # repeat for each plot file
 pdf(file=pdf.fp, width=5.5, height=4.25)
 
@@ -258,14 +246,42 @@ plot(map.us.proj, add=TRUE)
 # )
 # step through plot.raster
 
+# plot constants for fields::image.plot
+
+# package=M3 map for fields::image.plot
+map.table.fp <- Sys.getenv('MAP_TABLE_FP')
+map.cmaq <- read.table(map.table.fp, sep=",")
+palette.vec <- c(
+# original from KMF, 3 colors added to get deciles in probabilities.vec
+  #              R color
+  #                code
+  "grey",         # 260
+  "purple",       # 547
+  "deepskyblue2", # 123  
+  "green",        # 254
+  "greenyellow",  # 259
+  "yellow",       # 652
+  "orange",       # 498
+  "orangered",    # 503
+  "red",          # 552
+  "red4",         # 556
+  "brown"         #  32
+)
+colors <- colorRampPalette(palette.vec)
+# used for quantiling legend
+probabilities.vec <- seq(0, 1, 1.0/(length(palette.vec) - 1))
+# probabilities.vec
+# [1] 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+
+# for now, while debugging
 title <- "foo"
 subtitle <- "bar"
-q.vec <- probabilities.vec
+
 x.centers <- raster.centers.x(out.raster)
 y.centers <- raster.centers.y(out.raster)
 # fails to set dimensions correctly! -> [1] 137241      1
 out.data <- as.matrix(values(out.raster))
-quantiles <- quantile(c(out.data), q.vec, na.rm=TRUE)
+quantiles <- quantile(c(out.data), probabilities.vec, na.rm=TRUE)
 quantiles.formatted <- format(as.numeric(quantiles), digits=3)
 
 # page 4--------------------------------------------------------------
