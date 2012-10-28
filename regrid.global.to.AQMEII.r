@@ -113,14 +113,16 @@ system(sprintf('ncdump -h %s | head -n 13', template.in.fp))
 #     emi_n2o:units = "moles/s         " ;
 #     emi_n2o:var_desc = "Model species XYL                                                               " ;
 
-# extents metadata. TODO: harvest from `ncdump`
+# extents metadata. TODO: harvest from `ncdump`, make function
 extents.row.n <- 299
 extents.col.n <- 459
 grid.res <- 12e3    # AQMEII-NA grid resolution, units=m
-# From eyeballing raster::plot output, it appears (not sure why)
-#  raster (or sp?) sets center(x,y) == CRS(x_0,y_0) (for convenience?)
+# Note that setting center (x,y)=(0,0) fails spectacularly for both raster::plot and fields::image.plot
+# I thought x_0 and y_0 were *offsets* from center, but apparently they are center *coordinates*
 extents.center.x <- -2556000
 extents.center.y <- -1728000
+
+# from the above, calculate regrid extents
 extents.xmin <- 2 * extents.center.x
 extents.xmax <- extents.xmin + (extents.col.n * grid.res)
 extents.ymin <- 2 * extents.center.y
@@ -209,31 +211,19 @@ netCDF.stats.to.stdout(netcdf.fp=out.fp, var.name=data.var.name)
 
 # plot to PDF---------------------------------------------------------
 
-# plot constants for raster::plot
+# plot constants
 
-# package=raster map, for raster::plot
+# maps from package=raster
 # map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 == 'USA', ]  # unprojected
 # map.us.proj <- spTransform(map.us.unproj, CRS(out.crs))  # projected
 # do North America instead
 map.us.unproj <- wrld_simpl[wrld_simpl$ISO3 %in% c('CAN', 'MEX', 'USA'),]
 map.us.proj <-
   spTransform(map.us.unproj, CRS(out.crs)) # projected
-  # following args adapted from Hijmans, https://stat.ethz.ch/pipermail/r-sig-geo/2012-October/016501.html
-  # but the map does not draw in the output!
-#  spTransform(map.us.unproj, CRS=projection(out.raster, asText=F)) # projected
 
-# repeat for each plot file
-pdf(file=pdf.fp, width=5.5, height=4.25)
-
-# plot page 1: raster::plot-------------------------------------------
-# plot(out.raster, data.var.name) # only if RasterBrick or RasterStack
-plot(out.raster)
-# add a projected CONUS map
-plot(map.us.proj, add=TRUE)
-
-# plot page 2: fields::image.plot-------------------------------------
-
-# plot constants for fields::image.plot
+title <- 'GEIA annual oceanic N2O regridded to AQMEII-NA'
+out.data.vec <- getValues(out.raster) # raster data as vector
+subtitle <- subtitle.stats(out.data.vec)
 
 # package=M3 map for fields::image.plot
 map.table.fp <- Sys.getenv('MAP_TABLE_FP')
@@ -260,28 +250,24 @@ probabilities.vec <- seq(0, 1, 1.0/(length(palette.vec) - 1))
 # probabilities.vec
 # [1] 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
 
-title <- 'GEIA annual oceanic N2O regridded to AQMEII-NA'
-out.data.vec <- getValues(out.raster) # raster data as vector
-subtitle <- subtitle.stats(out.data.vec)
-
 x.centers <- raster.centers.x(out.raster)
 y.centers <- raster.centers.y(out.raster)
 quantiles <- quantile(out.data.vec, probabilities.vec, na.rm=TRUE)
 quantiles.formatted <- format(as.numeric(quantiles), digits=3)
 
-# close! data is recognizable, but North America position is mirrored
+# repeat for each plot file
+pdf(file=pdf.fp, width=5.5, height=4.25)
 
-# package=fields needs data as matrix, not vector
-# out.data.mx <- out.data.vec
-# dim(out.data.mx) <- c(length(x.centers), length(y.centers)) # cols, rows
-# plot.data(out.data.mx, title, subtitle, x.centers, y.centers, probabilities.vec, colors, map.cmaq)
-# # step through plot.data
-# plot.list <- list(x=x.centers, y=y.centers, z=out.data.mx)
+# plot page 1: raster::plot-------------------------------------------
+# plot(out.raster, main=title, sub=subtitle) # works
+plot(out.raster, # remaining args from image.plot
+  main=title, sub=subtitle,
+  xlab='', ylab='', axes=F, col=colors(100),
+  axis.args=list(at=quantiles, labels=quantiles.formatted))
+# add a projected CONUS map
+plot(map.us.proj, add=TRUE)
 
-# image.plot(plot.list, xlab="", ylab="", axes=F, col=colors(100),
-#   axis.args=list(at=quantiles, labels=quantiles.formatted),
-#   main=title)
-# lines(map.cmaq)
+# plot page 2: fields::image.plot-------------------------------------
 
 plot.raster(
   raster=out.raster,
@@ -291,6 +277,19 @@ plot.raster(
   colors,
   map.cmaq
 )
+
+# step through plot.raster:
+# package=fields needs data as matrix, not vector
+# out.data.mx <- out.data.vec
+# dim(out.data.mx) <- c(length(x.centers), length(y.centers)) # cols, rows
+# plot.data(out.data.mx, title, subtitle, x.centers, y.centers, probabilities.vec, colors, map.cmaq)
+
+# step through plot.data
+# plot.list <- list(x=x.centers, y=y.centers, z=out.data.mx)
+# image.plot(plot.list, xlab='', ylab='', axes=F, col=colors(100),
+#   axis.args=list(at=quantiles, labels=quantiles.formatted),
+#   main=title, sub=subtitle)
+# lines(map.cmaq)
 
 #   end image.plot----------------------------------------------------
 
