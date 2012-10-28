@@ -32,10 +32,14 @@ To run the first example (conversion):
 
 This appears to successfully complete the task.
 
-To run the second example (regridding):
+To run the second example (regridding, which takes as input the output from the conversion example):
 
 1. Similarly open/edit the driver script `regrid_GEIA_netCDF.sh` and make required changes.
 2. Run the driver:
     `$ ./regrid_GEIA_netCDF.sh`
 3. This will similarly setup and run an R script to regrid the netCDF, and plot the output.
-4. After the R script exits, the driver should display the PDF (if properly configured in step=3). For this example, the PDF currently has multiple pages. The most recent version of the PDF is also available for [download](https://github.com/downloads/TomRoche/GEIA_to_netCDF/GEIA_N2O_oceanic_regrid.pdf).
+4. After the R script exits, the driver should display the PDF (if properly configured in step=3). For this example, the PDF currently has multiple pages. The most recent version of the PDF is also available for [download][regridding plot].
+
+Currently, the regridded data appears to be correct in page 1 of the [regridding plot][], which is produced by `raster::plot`. However there are obvious problems (e.g., data orientation, map position) with page 2, which is produced by `fields::image.plot`.
+
+[regridding plot]: https://github.com/downloads/TomRoche/GEIA_to_netCDF/GEIA_N2O_oceanic_regrid.pdf
