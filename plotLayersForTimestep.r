@@ -202,12 +202,10 @@ plot.raster <- function(
 ) {
   x.centers <- raster.centers.x(raster)
   y.centers <- raster.centers.y(raster)
-  data <- as.matrix(values(raster), nrow=length(y.centers), ncol=length(x.centers))
-  # start debugging
-  # gotta set the dimensions!
-  dim(data)
-  #   end debugging
-  plot.data(data, title, subtitle, x.centers, y.centers, q.vec, colors, map)
+  # package=fields needs data as matrix, not vector
+  data.mx <- getValues(raster)
+  dim(data.mx) <- c(length(x.centers), length(y.centers)) # cols, rows
+  plot.data(data.mx, title, subtitle, x.centers, y.centers, q.vec, colors, map)
 } # end function plot.raster
 
 plot.data <- function(
