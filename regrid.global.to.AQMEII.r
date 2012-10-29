@@ -10,6 +10,7 @@ library(maptools)
 # gpclibPermit()
 library(rgdal)
 library(raster)
+library(M3) # for extents calculation
 data(wrld_simpl) # from maptools
 
 # constants-----------------------------------------------------------
@@ -28,16 +29,19 @@ template.in.fp <- Sys.getenv('TEMPLATE_INPUT_FP')
 template.band <- Sys.getenv('TEMPLATE_INPUT_BAND')
 out.fp <- Sys.getenv('DATA_OUTPUT_FP')
 
-# coordinate reference system
-# out.crs <- '+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556 +y_0=-1728'
-# Per RWP, make x,y units=meters (to match map, etc)
-out.crs <- '+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_0=-1728000'
+# coordinate reference system:
+# use package=M3 to get CRS from template file
+out.crs <- get.proj.info.M3(template.in.fp)
+cat(sprintf('out.crs=%s\n', out.crs)) # debugging
+# out.crs=+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +a=6370000 +b=6370000
 
 stat.script.fp <- Sys.getenv('STAT_SCRIPT_FP')
-source(stat.script.fp)
+source(stat.script.fp) # produces errant error=
+#> netCDF.stats.to.stdout.r: no arguments supplied, exiting
 plot.script.fp <- Sys.getenv('PLOT_SCRIPT_FP')
 source(plot.script.fp)
 
+# if any of the above failed, check how you ran (e.g., `source`d) driver script
 # plot constants below
 
 # payload-------------------------------------------------------------
@@ -113,22 +117,21 @@ system(sprintf('ncdump -h %s | head -n 13', template.in.fp))
 #     emi_n2o:units = "moles/s         " ;
 #     emi_n2o:var_desc = "Model species XYL                                                               " ;
 
-# extents metadata. TODO: harvest from `ncdump`, make function
-extents.row.n <- 299
-extents.col.n <- 459
-grid.res <- 12e3    # AQMEII-NA grid resolution, units=m
-# Note that setting center (x,y)=(0,0) fails spectacularly for both raster::plot and fields::image.plot
-# I thought x_0 and y_0 were *offsets* from center, but apparently they are center *coordinates*
-extents.center.x <- -2556000
-extents.center.y <- -1728000
+# use M3 to get extents from template file (thanks CGN!)
+extents.info <- get.grid.info.M3(template.in.fp)
+extents.xmin <- extents.info$x.orig
+extents.xmax <- max(
+  get.coord.for.dimension(
+    file=template.in.fp, dimension="col", position="upper", units="m")$coords)
+extents.ymin <- extents.info$y.orig
+extents.ymax <- max(
+  get.coord.for.dimension(
+    file=template.in.fp, dimension="row", position="upper", units="m")$coords)
+grid.res <- c(extents.info$x.cell.width, extents.info$y.cell.width) # units=m
 
-# from the above, calculate regrid extents
-extents.xmin <- 2 * extents.center.x
-extents.xmax <- extents.xmin + (extents.col.n * grid.res)
-extents.ymin <- 2 * extents.center.y
-extents.ymax <- extents.ymin + (extents.row.n * grid.res)
 template.extents <-
   extent(extents.xmin, extents.xmax, extents.ymin, extents.ymax)
+template.extents
 
 template.in.raster <- raster(template.in.fp, varname=data.var.name, band=template.band)
 template.raster <- projectExtent(template.in.raster, crs=out.crs)
@@ -136,7 +139,6 @@ template.raster <- projectExtent(template.in.raster, crs=out.crs)
 #> In projectExtent(template.in.raster, out.crs) :
 #>   158 projected point(s) not finite
 # is that "projected point(s) not finite" warning important? Probably not, per Hijmans
-
 template.raster@extent <- template.extents
 # should resemble the domain specification @
 # https://github.com/TomRoche/cornbeltN2O/wiki/AQMEII-North-American-domain#wiki-EPA
@@ -144,15 +146,22 @@ template.raster
 # class       : RasterLayer 
 # dimensions  : 299, 459, 137241  (nrow, ncol, ncell)
 # resolution  : 12000, 12000  (x, y)
-# extent      : -5112000, 396000, -3456000, 132000  (xmin, xmax, ymin, ymax)
-# coord. ref. : +proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_0=-1728000 +ellps=WGS84 
+# extent      : -2556000, 2952000, -1728000, 1860000  (xmin, xmax, ymin, ymax)
+# coord. ref. : +proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +a=6370000 +b=6370000 
+
+# start debug---------------------------------------------------------
+# regrid.start.time <- system('date', intern=TRUE)
+# regrid.start.str <- sprintf('start regrid @ %s', regrid.start.time)
+# cat(sprintf('%s\n', regrid.start.str))
+#   end debug---------------------------------------------------------
 
 # at last: do the regridding
 out.raster <-
   projectRaster(
+    # give a template with extents--fast, but gotta calculate extents
     from=in.raster, to=template.raster, crs=out.crs,
     # give a resolution instead of a template? no, that hangs
-#    from=in.raster, res=c(12e3, 12e3), crs=out.crs,
+#    from=in.raster, res=grid.res, crs=out.crs,
     method='bilinear', overwrite=TRUE, format='CDF',
     # args from writeRaster
     NAflag=-999.0,  # match emi_n2o:missing_value,_FillValue (TODO: copy)
@@ -168,11 +177,17 @@ out.raster
 # class       : RasterLayer 
 # dimensions  : 299, 459, 137241  (nrow, ncol, ncell)
 # resolution  : 12000, 12000  (x, y)
-# extent      : -5112000, 396000, -3456000, 132000  (xmin, xmax, ymin, ymax)
-# coord. ref. : +proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_0=-1728000 +ellps=WGS84 
-# data source : /tmp/projectRasterTest/GEIA_N2O_oceanic_regrid.nc 
+# extent      : -2556000, 2952000, -1728000, 1860000  (xmin, xmax, ymin, ymax)
+# coord. ref. : +proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +a=6370000 +b=6370000 
+# data source : /home/rtd/code/R/GEIA_to_netCDF/GEIA_N2O_oceanic_regrid.nc 
 # names       : N2O.emissions 
 # zvar        : emi_n2o 
+
+# start debug---------------------------------------------------------
+# regrid.end.time <- system('date', intern=TRUE)
+# cat(sprintf('  end regrid @ %s\n', regrid.end.time))
+# cat(sprintf('%s\n', regrid.start.time))
+#   end debug---------------------------------------------------------
 
 system(sprintf('ls -alht %s', test.dir))
 system(sprintf('ncdump -h %s', out.fp))
@@ -192,22 +207,22 @@ system(sprintf('ncdump -h %s', out.fp))
 #     emi_n2o:_FillValue = -999. ;
 #     emi_n2o:missing_value = -999. ;
 #     emi_n2o:long_name = "N2O emissions" ;
-#     emi_n2o:projection = "+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +x_0=-2556000 +y_0=-1728000 +ellps=WGS84" ;
+#     emi_n2o:projection = "+proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +a=6370000 +b=6370000" ;
 #     emi_n2o:projection_format = "PROJ.4" ;
 #     emi_n2o:min = 0.83728 ;
-#     emi_n2o:max = 518.455243389694 ;
+#     emi_n2o:max = 522.693774638276 ;
 # ...
 
 netCDF.stats.to.stdout(netcdf.fp=out.fp, var.name=data.var.name)
 # For ./GEIA_N2O_oceanic_regrid.nc var=emi_n2o
 #   cells=137241
-#   obs=46292
+#   obs=46473
 #   min=0.837
 #   q1=11.9
-#   med=54.2
-#   mean=71.8
+#   med=54.1
+#   mean=71.9
 #   q3=85.5
-#   max=518
+#   max=523
 
 # plot to PDF---------------------------------------------------------
 
