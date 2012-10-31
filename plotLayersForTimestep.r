@@ -205,7 +205,14 @@ plot.raster <- function(
   # package=fields needs data as matrix, not vector
   data.mx <- getValues(raster)
   dim(data.mx) <- c(length(x.centers), length(y.centers)) # cols, rows
-  plot.data(data.mx, title, subtitle, x.centers, y.centers, q.vec, colors, map)
+#  plot.data(data.mx, title, subtitle, x.centers, y.centers, q.vec, colors, map)
+  # Above fails: data is reversed relative to map ?!?
+#  plot.mx <- data.mx[nrow(data.mx):1,] # just change the row indices
+  # And reversing matrix rows vertically fails--
+  # it mirrors the plot horizontally/east-west!
+  # What works: reverse the _cols_ horizontally (not transpose)
+  plot.mx <- data.mx[,ncol(data.mx):1] # just change the column indices
+  plot.data(plot.mx, title, subtitle, x.centers, y.centers, q.vec, colors, map)
 } # end function plot.raster
 
 plot.data <- function(
