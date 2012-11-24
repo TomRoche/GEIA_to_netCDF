@@ -237,6 +237,10 @@ map.us.proj <-
   spTransform(map.us.unproj, CRS(out.crs)) # projected
 
 title <- 'GEIA annual oceanic N2O regridded to AQMEII-NA'
+units <- '(ton N2O-N/yr)' # TODO: get this from netCDF file
+# combine them. TODO: how to make units smaller, italicized?
+title <- sprintf('%s\n%s', title, units)
+
 out.data.vec <- getValues(out.raster) # raster data as vector
 subtitle <- subtitle.stats(out.data.vec)
 
@@ -286,7 +290,7 @@ plot(map.us.proj, add=TRUE)
 
 plot.raster(
   raster=out.raster,
-  title=title,
+  title=title, 
   subtitle=subtitle,
   q.vec=probabilities.vec,
   colors,
