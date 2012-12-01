@@ -1,7 +1,5 @@
-# R code to write GEIA emissions from the distributed text format
-# (space separated values, 10-line header, no comments)
-# to netCDF format. Unfortunately all hardcoded.
-# If running manually in R console, remember to run setup actions from GEIA_to_netCDF/regrid_GEIA_netCDF.sh
+# R code to 2D-regrid GEIA global/unprojected netCDF data to AQMEII-NA, an LCC-projected subdomain.
+# If running manually in R console, remember to run setup actions: `source ./regrid_GEIA_netCDF.sh`
 
 library(ncdf4)
 library(fields)
@@ -25,6 +23,10 @@ pdf.er <- Sys.getenv('PDF_VIEWER')
 in.fp <- Sys.getenv('DATA_INPUT_FP')
 in.band <- Sys.getenv('DATA_INPUT_BAND')
 data.var.name <- Sys.getenv('DATA_VAR_NAME')
+data.var.longname <- Sys.getenv('DATA_VAR_LONGNAME')
+data.var.unit <- Sys.getenv('DATA_VAR_UNIT')
+data.var.na <- as.numeric(Sys.getenv('DATA_VAR_NA')) # must convert from string
+template.var.name <- Sys.getenv('TEMPLATE_VAR_NAME')
 template.in.fp <- Sys.getenv('TEMPLATE_INPUT_FP')
 template.band <- Sys.getenv('TEMPLATE_INPUT_BAND')
 out.fp <- Sys.getenv('DATA_OUTPUT_FP')
@@ -133,7 +135,7 @@ template.extents <-
   extent(extents.xmin, extents.xmax, extents.ymin, extents.ymax)
 template.extents
 
-template.in.raster <- raster(template.in.fp, varname=data.var.name, band=template.band)
+template.in.raster <- raster(template.in.fp, varname=template.var.name, band=template.band)
 template.raster <- projectExtent(template.in.raster, crs=out.crs)
 #> Warning message:
 #> In projectExtent(template.in.raster, out.crs) :
@@ -164,10 +166,10 @@ out.raster <-
 #    from=in.raster, res=grid.res, crs=out.crs,
     method='bilinear', overwrite=TRUE, format='CDF',
     # args from writeRaster
-    NAflag=-999.0,  # match emi_n2o:missing_value,_FillValue (TODO: copy)
+    NAflag=data.var.na,
     varname=data.var.name, 
-    varunit='ton N2O-N/yr',
-    longname='N2O emissions',
+    varunit=data.var.unit,
+    longname=data.var.longname,
     xname='COL',
     yname='ROW',
     filename=out.fp)
@@ -179,7 +181,7 @@ out.raster
 # resolution  : 12000, 12000  (x, y)
 # extent      : -2556000, 2952000, -1728000, 1860000  (xmin, xmax, ymin, ymax)
 # coord. ref. : +proj=lcc +lat_1=33 +lat_2=45 +lat_0=40 +lon_0=-97 +a=6370000 +b=6370000 
-# data source : /home/rtd/code/R/GEIA_to_netCDF/GEIA_N2O_oceanic_regrid.nc 
+# data source : /tmp/projectRasterTest/GEIA_N2O_oceanic_regrid.nc 
 # names       : N2O.emissions 
 # zvar        : emi_n2o 
 

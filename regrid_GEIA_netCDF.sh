@@ -42,8 +42,12 @@ if [[ ! -r "${DATA_INPUT_FP}" ]] ; then
     eval "${CMD}"
   done
 fi
-export DATA_VAR_NAME='emi_n2o'  # see ncdump output
-export DATA_INPUT_BAND='3'      # GEIA makes dim=TIME third
+# TODO: automate getting this metadata
+export DATA_VAR_NAME='emi_n2o'            # see ncdump output
+export DATA_VAR_LONGNAME='N2O emissions'  # see ncdump output
+export DATA_VAR_UNIT='ton N2O-N/yr'       # see ncdump output
+export DATA_VAR_NA='-999.0'      # missing_value, _Fill_Value
+export DATA_INPUT_BAND='3' # index of dim=TIME in emi_n2o(time, lat, lon)
 
 # output name is variant of input name
 
@@ -55,9 +59,8 @@ export DATA_OUTPUT_FP="${TEST_DIR}/${DATA_OUTPUT_FN}"
 # The template input is a copy of some meteorological data with 52 "real" datavars.
 # That data is in the IOAPI format, which here is basically a wrapper around netCDF.
 # (IOAPI can be used with other data, and similar wrappers exist for other models.)
-# I removed all but one of the datavars (with NCO 'ncks'), and
-# renamed (with NCO 'ncrename') that datavar to have the same name
-# as my input datavar (and hopefully my output datavar).
+# I removed all but one of the datavars (with NCO 'ncks'). TODO: automate!
+export TEMPLATE_VAR_NAME='emi_n2o'
 
 TEMPLATE_INPUT_URI='https://github.com/downloads/TomRoche/GEIA_to_netCDF/emis_mole_all_20080101_12US1_cmaq_cb05_soa_2008ab_08c.EXTENTS_INPUT.nc'
 TEMPLATE_INPUT_FN="$(basename ${TEMPLATE_INPUT_URI})"
